@@ -1,0 +1,2 @@
+This is a project which uses growth curve data from a checkerboard assay - an assay which tests bacterial growth in the presence of 2 different drugs at varying concentration gradients - to breifly assess if a novel drug appears to be having an effect.
+It is best to download the entire repo in order to run the checkerboard_analysis.qmd file as there are images and saved plots as well as required csv files in different directories.
