@@ -6,11 +6,7 @@ editor: visual
 #code-fold: true
 ---
 
-```{r setup}
-knitr::opts_knit$set(root.dir = "C:/Documents/gradclasses/Rcourse/assignments/assignment6files/checkerboardfiles")
-```
-
-![](images/peptide.png){width="2in"}
+![](images/peptide.png){fig-align="center" width="4in"}
 
 ## Background information
 
@@ -18,13 +14,13 @@ My data looks at *Escherichia coli* growth over a 24h period in a 96-well plate 
 
 ![Figure 1. Checkerboard assay setup](images/checkerboard_setup.png)
 
-The *E.coli* test strain contains an enzyme (TEM-1) that confers resistance to ampicillin. The novel peptide is proven to bind to and inhibit TEM-1 *in-vitro*, so we are seeing if it can also inhibit TEM-1 in bacterial cells.
+The *E.coli* test strain contains an plasmid borne enzyme (TEM-1) that confers resistance to ampicillin. The novel peptide is proven to bind to and inhibit TEM-1 *in-vitro*, so we are seeing if it can also inhibit TEM-1 in bacterial cells.
 
-For the test strain (*E.coli* PB9) which contains TEM-1 we are hoping to see that ampicillin's efficacy is restored with the addition of our peptide. If the peptide inhibits TEM-1, then TEM-1 is not available to degrade ampicillin, so ampicillin is able to enact its bacteriacidal effect by targeting a key enzyme in the bacterial cell wall.
+For the test strain (*E.coli* PB9) which contains TEM-1, we are hoping to see that ampicillin's efficacy is restored with the addition of our peptide. If the peptide inhibits TEM-1, then TEM-1 is not available to degrade ampicillin, so ampicillin is able to enact its bactericidal effect by targeting a key enzyme in the bacterial cell wall.
 
 ![Figure 2. Proposed effect of peptide and ampicillin on key cell wall enzyme (PBP) in gram-negative bacteria.](images/peptide_mechanism_of_action.png)
 
-Ideally, we hope to see that with increasing peptide concentrations, the amount of ampicillin required to kill the bacteria decreases. Additionally, there will be a control *E.coli* strain which does not have TEM-1. For this strain, we would expect to see only a response in growth to ampicillin and not peptide. It's growth across the plate should only change vertically with ampicillin concentration, and not horizontally with the peptide because it does not contain TEM-1 (the enzyme that we hope the peptide inhibits) so it is more susceptible to ampicillin. We will ultimately compare the growth patterns of the TEM-1 containing PB9 strain to that of the MG1655 control.
+Ideally, we hope to see that with increasing peptide concentrations, the amount of ampicillin required to kill the bacteria decreases. Additionally, there will be a control *E.coli* strain which does not contain TEM-1. For this strain, we would expect to see only a response in growth to ampicillin and not peptide. It's growth across the plate should only change vertically with ampicillin concentration, and not horizontally with the peptide because it does not contain TEM-1 (the enzyme that we hope the peptide inhibits) so it is more susceptible to ampicillin. We will ultimately compare the growth patterns of the TEM-1 containing PB9 strain to that of the MG1655 control.
 
 ## Questions I hope to answer in my analysis:
 
@@ -48,8 +44,10 @@ This data comes in the format with time, temperature and well columns. The well 
 
 ```{r}
 #| code-fold: true
-OD_time_info <- read_csv("growthcurvedata/checkerboard_PB9_amp_EP6_250219_input.csv",
+OD_time_info <- read_csv(
+  "growthcurvedata/checkerboard_PB9_amp_EP6_250219_input.csv", 
                          show_col_types = F) 
+head(OD_time_info, 3)
 ```
 
 ```{r}
@@ -83,11 +81,11 @@ I will remove the temperature column which gives the temperature of the plate re
 OD_time_info <- OD_time_info[,-2]  #removing Temp column from data
 ```
 
-**Now looking at the well columns.** These are represented as a column for each well (NOT TIDY!). Each column contains an OD600 reading.
+**Now looking at the well columns.** These are represented as a column for each well from 0 to 24h (NOT TIDY!). Each column contains an OD600 reading.
 
 ```{r}
 #| code-fold: true
-OD_time_info[,2:ncol(OD_time_info)] %>% head() #each column contains an OD600 reading
+OD_time_info[,2:ncol(OD_time_info)] %>% head(3) #each column contains an OD600 reading
 ```
 
 **Double checking that each column has 49 readings and no NAs:**
@@ -122,7 +120,7 @@ pivotlong_gc <- function(df){
   df <- pivot_longer(df, cols = A1:H12, 
                       names_to = "well",
                       values_to = "OD600")
-  print(df %>% head())
+  print(df %>% head(3))
   print(paste("nrow: ", nrow(df)))  #this is good because 96 * 49 = 4704
   return(df)
 }
@@ -144,7 +142,7 @@ distributionOD <- function(df, title){
 distributionOD(long_OD_time_info, "Distribution of OD600 well readings for a 24h E.coli growth curve")
 ```
 
-This is good. OD readings should be above 0, and not too far above 1. Also having a lot below 0.4 makes sense as not all wells will have growth and also many wells before the 10ish hour mark will have very minimal growth
+This is good. OD readings should be above 0, and not too far above 1. Also having a lot of readings near 0 makes sense as not all wells will have growth and also many wells before the 10ish hour mark will have very minimal growth.
 
 **Now add 2 new columns: 'column' and 'row' which will be used later for graphing.**
 
@@ -156,7 +154,7 @@ addcolumnrow <- function(df){
   
   #make it see column numbers as discrete variables (not contiuous), needed for graphing
   df$column <- factor(df$column, levels = df$column[1:12])  
-  print(df %>% head()) #the 2 new columns are there
+  print(df %>% head(3)) #the 2 new columns are there
   return(df)
 }
 long_OD_time_info <- addcolumnrow(long_OD_time_info)  
@@ -171,10 +169,10 @@ Now I need to read in a new file 'PB9_drugconcs.csv'. This gives the ampicillin 
 ```{r}
 #| code-fold: true
 drugconcs <- read_csv("drugconcs/PB9_drugconcs.csv", show_col_types = F)  
-print(drugconcs) #values in uM or ug/mL
+head(drugconcs, 3) #values in uM or ug/mL
 ```
 
-we only need the uM columns, so ug/mL will be removed. We do not need to remove NAs because there are only 8 ampicillin rows which will be indexed for accordingly later.
+We only need the $\mu M$ columns, so $\mu g/mL$ will be removed. We do not need to remove NAs because there are only 8 ampicillin rows which will be indexed for accordingly.
 
 ```{r}
 #| code-fold: true
@@ -215,7 +213,7 @@ adddrugconcs <- function(dfgc, dfdc){
     dfgc$amp_uM   <- factor(dfgc$amp_uM, levels = dfgc$amp_uM[seq(1, 96, by=12)])
     dfgc$pep_uM   <- factor(dfgc$pep_uM, levels = na.omit(dfgc$pep_uM[1:12]))       
   
-  print(dfgc %>% head())
+  print(dfgc %>% head(3))
   return(dfgc)
 }
 long_OD_time_info <- adddrugconcs(long_OD_time_info, drugconcs)   
@@ -230,21 +228,22 @@ Now we will read in the background OD600 data from a separate csv file. This is 
 ```{r}
 #| code-fold: true
 bgOD <- read_csv("background/camhb_bg_input.csv", show_col_types = F)
-print(bgOD)
+head(bgOD)
 ```
 
 column names '...1' needs to be fixed for clarity. The other columns probably shouldn't have back ticks, but we won't be working with this data for long, so it is not necessary to fix them.
 
-Now I will fix the name of column 1 and format the table so that it is tidy and in the right format to be subtracted from growth curve data.
+Now I will fix the name of column 1 and format the table so that it is tidy and long format so it can be subtracted from growth curve data.
 
 ```{r}
 #| code-fold: true
 bgOD <- rename(bgOD, row = ...1)   #fix name of column 1, rename it 'row'
+
 #use pivot longer, so this data can be used with above OD_time data
 bgOD <- pivot_longer(bgOD, cols = `1`:`12`,
              names_to = "column",
              values_to = "OD600")
-print(head(bgOD))  #
+print(head(bgOD, 3))  
 ```
 
 looks good.
@@ -264,7 +263,7 @@ bgOD[seq(1, 96, by = 12),] #looks good.
 range(bgOD$OD600)
 ```
 
-It is good that the range is small because all wells just contain media, so they are the same and should contain little variation. 0.1 is quite low too which is what we expect as there is no bacterial growth in this media control plate
+It is good that the range is small because all wells just contain media, so they are the same and should contain little variation. 0.1 is quite low too which is what we expect as there is no bacterial growth in this media control plate.
 
 **Checking the background and original growth curve data vectors align:**
 
@@ -274,7 +273,7 @@ long_OD_time_info$well[1:96] == bgOD$well
 
 Yes, they do! This means they can be subtracted.
 
-Now I will subtract the background absorbance values from the original absorbance values in the growth curve data.
+Now that we know the background wells and test plate wells are in the same order, I will subtract the background absorbance values from the original absorbance values in the growth curve data.
 
 ```{r}
 long_OD_time_info$OD600 <- long_OD_time_info$OD600 - bgOD$OD600
@@ -290,94 +289,46 @@ Once background is subtracted, OD is mostly above 0. Being slightly below 0 is o
 
 #### Initial look at the growth curve data
 
-**Distribution by drug concentration plots**
-
-Now that background has been subtracted and everything is tidy we will test the OD600 distributions by drug concentration. This will offer quick insight into if our test strain is responding to either drug individually.
+**Growth curves for control column and row** First I will look at the control column and row (row 1 and column 1) which only have one drug type each. This will offer insight into how the bacteria is responding to each drug individually. We would expect lower growth in the ampicillin only column as ampicillin concentrations increase. We would also expect the same amount of growth in the peptide only row as peptide concentrations increase because the peptide is not beleived to be bactericidal on its own.
 
 ```{r}
 #| code-fold: true
-distributionbyamp <- function(df, title){
-  p1 <- df %>% 
-     ggplot(aes(x = OD600, fill = amp_uM)) +
-     geom_histogram(bins = 30) +
-     labs(title = title, fill = "ampicillin \nconcentration (uM)") +
-     theme_light()
-  print(p1)
- }
-  
- distributionbyamp(long_OD_time_info, 
-                   title = "Distribution of OD600 well readings for growth curve \nby ampicillin concentration")
-```
-
-plot1: Overall, higher readings (i.e. more bacterial growth) appears to come more frequently from rows with lower ampicillin concentration which makes sense. The highest concentrations of ampicillin have the most counts at low OD readings which also makes sense
-
-```{r}
-#| code-fold: true
-#testing distribution of OD600 by peptide conc.
-distributionbypep <- function(df, title){
-  p2 <- df %>%
-    ggplot(aes(x = OD600, fill = pep_uM)) +
-    geom_histogram(bins = 30) +
-    labs(title = title, fill = "peptide \nconcentration (uM)") +
-    theme_light()
-  print(p2)
-}
-distributionbypep(long_OD_time_info,
-                   title = "Distribution of OD600 well readings for growth curve \nby peptide concentration")
-```
-
-plot2: Overall, higher peptide concentrations have higher counts of low OD600 readings and vise versa! (this is good). It is not as drastic a difference as with ampicillin as the peptide is not bacteriacidal on its own.
-
-**Testing that the drug concentrations and respective rows are the same**
-
-```{r}
-#| code-fold: true
-rowAplot1 <- long_OD_time_info %>%     #testing plots on one row (row A)
-              filter(row == "A") %>%       
-              ggplot(aes(x = newtime, y = OD600, color = column, fill = column)) +
-              geom_line() +
-              labs(x = "Time (hours)", 
-                   title = "24h growth curve of E.coli PB9 \nat ampicillin concentration 0 and varying peptide concs") +
-              geom_point()
-print(rowAplot1)
-#shows OD generally goes down as columns (peptide conc) increases.
-
 rowAplot2 <- long_OD_time_info %>%     #testing plots on one row (row A)
               filter(row == "A") %>%       
               ggplot(aes(x = newtime, y = OD600, color = pep_uM)) +
               geom_line() +
-              labs(x = "Time (hours)", title = "24h growth curve of E.coli PB9 \nat ampicillin concentration 0 and varying peptide concs", color = "Peptide \nConc. (uM)") +
-              geom_point()
+              labs(x = "Time (hours)",
+                   title = "24h growth curve of E.coli PB9 \nat ampicillin concentration 0 and varying peptide concs", 
+                   color = "Peptide \nConc. (\u00B5M)") +
+              geom_point() +
+              theme_minimal()
 print(rowAplot2)
 
 ```
 
-These are the same plot. But I was just plotting them side by side to be sure that the drug concentrations aligned with the correct column numbers. And it looks that they have, given that the plots are the same.
+Another thing to note from these plots is that the OD reading often starts off high and drops within the first hour. This is likely due to condensation under the plate lid as the plate gets up to temperature. Also it could be from bubbles caused by the DMSO that the peptide is dissolved in. These generally pop over time when the plate is shaken every 30min. However this drop is kind of confusing to the overall trend, so going forward I will remove time points from the first hour, because they are not representative of actual bacterial growth.
 
-Another thing to note from these plots is that the OD reading often starts off high and drops within the first hour. This is likely due to condensation under the plate lid as the plate gets up to temperature. Also could be from bubbles caused by the DMSO that the peptide is dissolved in. These generally pop over time when the plate is shaken every 30min. However this drop is kind of confusing to the overall trend, so going forward I will remove time points from the first hour, because they are not representative of actual bacterial growth.
+When looking at the first row above. It appears as though the peptide on its own at higher concentrations is resulting in decreased bacteria growth. This is surprising, and suggests maybe the peptide does have some bactericidal effects on its own. Or perhaps some other unforeseen effect is at play.
 
-**Growth curves for control column and row**
-
-Next, I will remove first hour points to test that this looks good and plot the control column (0uM peptide) and control row (0uM ampicillin).
+Next, I will remove first hour points to test that this looks good and plot the control row (0 $\mu M$ peptide).
 
 ```{r}
 #| code-fold: true
+
 makesinglerowplotpep <- function(df, title){
   #no ampicillin row
   p1 <- df%>% 
     filter(amp_uM == 0 & newtime > 1) %>%       
     ggplot(aes(x = newtime, y = OD600, color = pep_uM)) +
     geom_point() +
-    labs(x = "Time (hours)", color = "Peptide \nConcentration (uM)",  title = title) +
-    geom_line() 
-  print(p1)
+    labs(x = "Time (hours)", color = "Peptide \nConcentration (\u00B5M)",  title = title) +
+    geom_line()  +
+    theme_minimal()
+  return(p1)
 }
 makesinglerowplotpep(long_OD_time_info, 
             "24h growth curve of E.coli PB9 \nat ampicillin concentration 0")
-```
 
-```{r}
-#| code-fold: true
 makesinglerowplotamp <- function(df, title){
 #no peptide column
   p2 <- df %>% 
@@ -385,22 +336,24 @@ makesinglerowplotamp <- function(df, title){
     ggplot(aes(x = newtime, y = OD600, color = amp_uM)) +
     geom_point() +
     labs(x = "Time (hours)", 
-         color = "ampicillin \nconc (uM)",
+         color = "ampicillin \nconc (\u00B5M)",
          title = title) +
-    geom_line() 
+    geom_line() +
+    theme_minimal()
   print(p2)
 }
 makesinglerowplotamp(long_OD_time_info, 
             "24h growth curve of E.coli PB9 \nat a peptide concentration of 0")
 ```
 
-I think the plots look better with the 1st hour removed. There is also definitely a decrease in bacterial growth with increasing ampicillin concentration. This makes sense, given that ampicillin is a bacteriacidal agent. Overall, the OD600 also appears to go down as peptide concentration increases. This is strange considering the peptide is not bacteriacidal on its own and should rely on the presence of ampicillin to inhibit bacterial growth. So maybe the peptide does have some off target bacterialcidal properties to look into in the future for my project.
+There is also definitely a decrease in bacterial growth with increasing ampicillin concentration. This makes sense, given that ampicillin is a bactericidal agent. Overall, the OD600 also appears to go down as peptide concentration increases.
 
 #### Growth Curve Plots for Whole Checkerboard
 
 ```{r}
 #| code-fold: true
 make_allwellgc <- function(df, title){
+
   allwellplot <- df %>% 
     filter(newtime > 1) %>% 
     ggplot(aes(x = newtime, y = OD600)) +
@@ -412,10 +365,12 @@ make_allwellgc <- function(df, title){
   
     facet_grid(amp_uM ~ pep_uM, scales = "fixed") + 
     scale_y_continuous(breaks = seq(0, 1.5, 0.5),
-                       sec.axis = sec_axis(~ . , name = "Ampicillin Concentration (uM)",
+                       sec.axis = sec_axis(~ . ,
+                                           name = "Ampicillin Concentration (\u00B5M)",
                                            breaks = NULL, labels = NULL)) +
     scale_x_continuous(breaks = seq(0, 24, 4), 
-                       sec.axis = sec_axis(~ . , name = "Peptide Concentration (uM)",
+                       sec.axis = sec_axis(~ . , 
+                                           name = "Peptide Concentration (\u00B5M)",
                                            breaks = NULL, labels = NULL)) +
   
   
@@ -431,13 +386,17 @@ make_allwellgc <- function(df, title){
   return(allwellplot)
 }
 
-allwellplot <- make_allwellgc(long_OD_time_info, "Growth curve of checkerboard assay for TEM-1 containing E.coli")
-ggsave2(plot = allwellplot, filename = "plots/PB9_allwellplot.jpeg", width = 24, height = 16, units = "cm")
+allwellplot <- make_allwellgc(long_OD_time_info, "Growth curve of checkerboard assay for TEM-1 containing E.coli PB8")
+
+#save plot to put image in quarto file t
+ggsave2(plot = allwellplot,
+        filename = "plots/PB9_allwellplot.jpeg",
+        width = 24, height = 16, units = "cm")
 ```
 
-![](plots/PB9_allwellplot.jpeg) Overall, I think this is a promising sign that the peptide is working! As peptide increases, the general trend is lack of growth at lower ampicillin concentrations. For example at 0uM peptide, 4039uM of ampicillin is required to kill the bacteria. At 50uM of peptide, only 2423uM of peptide is required to kill the bacteria. At 70uM of peptide, only 808uM of peptide is required to inhibit growth!
+![](plots/PB9_allwellplot.jpeg) Overall, I think this is a promising sign that the peptide is working! As peptide increases, the general trend is lack of growth at lower ampicillin concentrations. For example at 0$\mu M$ peptide, 4039$\mu M$ of ampicillin is required to kill the bacteria. At 50 $\mu M$ of peptide, only 2423$\mu M$ of peptide is required to kill the bacteria. At 70$\mu M$ of peptide, only 808$\mu M$ of peptide is required to inhibit growth!
 
-Additionally, it would appear that there is an increase in lagtime of growth with increasing peptide concentrations. This means the peptide is still affecting growth even if it is not completely inhibiting it.
+Additionally, it would appear that there is an increase in lag time of growth with increasing peptide concentrations. This means the peptide is still affecting growth even if it is not completely inhibiting it.
 
 ### Calculating the Area Under the Curve (AUC)
 
@@ -478,10 +437,10 @@ areavector <- function(df){
   return(round(allareas, 2))
 }
 allareas <- areavector(long_OD_time_info)
-print(allareas)
+print(allareas[1:10])
 ```
 
-These are all the areas under each curve.
+Successfully calculated AUC.
 
 **Adding the AUCs to the original data frame**
 
@@ -502,10 +461,11 @@ Double checking... the same well for all time points should have the same area.
 long_OD_time_info %>% 
   filter(well == "A1") %>% 
   select(area) %>% 
-  unique
+  unique() %>% 
+  length()
 ```
 
-This looks good, the area for A1 at all time points is 22.2
+This looks good, the area for A1 for example at all time points is only has 1 AUC.
 
 **Heatmap of AUC**
 
@@ -522,12 +482,23 @@ makeheatmap <- function(df, title){
     ggplot(aes(x = pep_uM, y = amp_uM, fill = area)) +
     geom_tile() +
     scale_x_discrete(position = "top") +
-    labs(x = "Peptide Concentration (uM)", y = "Ampicillin Concentration (uM)",
-         title = title)
+    labs(x = "Peptide Concentration (\u00B5M)", 
+         y = "Ampicillin Concentration (\u00B5M)",
+         fill = "Area",
+         title = title) +
+    theme(
+    panel.background = element_blank(),  #this removes gray around the edges
+    plot.background  = element_blank(),
+    panel.border     = element_blank(),
+    plot.title = element_text(size = 10)
+    )
 }
 
 PB9_hmap <- makeheatmap(long_OD_time_info, 
-            title = "Heatmap of area under the curve \nfor each well in a Checkerboard for TEM-1 \ncontaining E.coli PB9")
+            title = "Heatmap of area under the curve for each well in a Checkerboard \nfor TEM-1 ncontaining E.coli PB9")
+#PB9_hmap
+
+#saving image
 ggsave2(plot = PB9_hmap, filename = "plots/PB9_hmap.jpeg", width = 12, height = 8, units = "cm")
 ```
 
@@ -541,11 +512,11 @@ Since a lot of the explanations for the data checking/wrangling have been done a
 
 ```{r}
 #| code-fold: true
-MG1655_gc <- read_csv("growthcurvedata/checkerboard_MG1655_amp_EP6_012325_input.csv", show_col_types = F)
+MG1655_gc <- read_csv("./growthcurvedata/checkerboard_MG1655_amp_EP6_250123_input.csv", show_col_types = F)
 names(MG1655_gc)
 ```
 
-layout is the same as PB9 strain, with time, temperature and well columns.
+The layout is the same as PB9 strain, with time, temperature and well columns.
 
 **Removing Temp column, check for NAs and 49 time points:**.
 
@@ -574,10 +545,10 @@ MG1655_gc <- addcolumnrow(MG1655_gc) #add column and row columns
 #| code-fold: true
 
 MG1655drugconcs <- read_csv("drugconcs/MG1655_drugconcs.csv", show_col_types = F) #read in drug concs
-print(MG1655drugconcs) 
+head(MG1655drugconcs) 
 ```
 
-There are more NAs, this is becuase I did not use the first column and last column on the 96-well plate when I was doing the checkerboard. I will need to remove these NAs later.
+There are more NAs, this is because I did not use the first column and last column on the 96-well plate when I was doing the checkerboard. I will need to remove these NAs later. Later I need to repeat this experiment and do a full control using all wells.
 
 **Add drug concs to the main MG1655 growth curve data frame:**
 
@@ -613,7 +584,7 @@ makesinglerowplotamp(MG1655_gc,
                    title = "24h growth curve of E.coli MG1655 control strain \ntreated without peptide")
 ```
 
-MG16155 is responding as expected to ampicillin.
+MG16155 is responding as expected to ampicillin, with higher concentrations of drug resulting in less growth.
 
 ```{r}
 #| code-fold: true
@@ -622,21 +593,7 @@ makesinglerowplotpep(MG1655_gc,
                      title = "24h growth curve of E.coli MG1655 control strain \ntreated without ampicillin")
 ```
 
-I think this looks good. Regardless of the peptide concentration, the wells pretty much grow the same. This makes sense as there is no TEM-1 for the peptide to inhibit.
-
-**Distributions of OD600 by drug concentration**
-
-```{r}
-#| code-fold: true
-
-distributionbyamp(MG1655_gc,
-                   title = "Distributions of OD600 for 24h growth curve \nof E.coli MG1655 control by ampicillin concentration")
-
-distributionbypep(MG1655_gc,
-                  title = "Distributions of OD600 for 24h growth curve \nof E.coli MG1655 control by peptide concentration")
-```
-
-I think the distribution of OD600 looks about the same for each concentration of peptide. This is good because it means our control strain is not responding to the peptide. Further supporting that the peptide is having an effect on our TEM-1 containing strain. Ampicillin has an effect on OD600 distribution with very minimal 0uM ampicillin being present at low OD600s and very little high (32uM) ampicillin concentration being present at low OD600. This is as expected, as the MG1655 strain should still be growing less in higher concentrations of ampicillin.
+I think this looks good. Regardless of the peptide concentration, the wells pretty much grow the same. This makes sense as there is no TEM-1 for the peptide to inhibit. Interesting that peptide only appeared to have an effect in the PB9 test strain but not in the control strain.
 
 #### Growth Curves for MG1655 Checkerboard.
 
@@ -647,7 +604,7 @@ MG1655plot <- make_allwellgc(MG1655_gc,
 ggsave2(plot = MG1655plot, filename = "plots/MG1655_allwellplot.jpeg",  width = 24, height = 16, units = "cm")
 ```
 
-![](plots/MG1655_allwellplot.jpeg) This one appears pretty consistent across the x axis, meaning the peptide is having little effect on growth (this is what we expect.) Growth is inhibited at 11-16uM of ampicillin which is a low amount that we would expect for a non-resistant strain of bacteria.
+![](plots/MG1655_allwellplot.jpeg) This one appears pretty consistent across the x axis, meaning the peptide is having little effect on growth (this is what we expect.) Growth is inhibited at 11-16$\mu M$ of ampicillin which is a low amount that we would expect for a non-resistant strain of bacteria. The jagged growth in well D6 appears to be just noise, but a replicate plate will need to be run anyways.
 
 #### Doing AUC Analyses for MG1655
 
@@ -677,12 +634,12 @@ ggsave2(plot = MG1655_hmap, filename = "plots/MG1655_hmap.jpeg", width = 12, hei
 
 ![](plots/MG1655_hmap.jpeg){width="8in"} Overall, this supports the growth curve plot results that MG1655 is working expected as a control and that the peptide inhibits TEM-1 which is why there is no peptide effect on MG1655.
 
-#### Comparing the PB9 and MG1655 Plots
+#### Comparing the PB9 and MG1655 Plots Side by Side
 
 ::: {layout-ncol="2"}
-![](plots/MG1655_allwellplot.jpeg){width="50%"}
+![](plots/MG1655_allwellplot.jpeg){width="90%"}
 
-![](plots/PB9_allwellplot.jpeg){width="50%"}
+![](plots/PB9_allwellplot.jpeg){width="90%"}
 :::
 
 ::: {layout-ncol="2"}
@@ -691,6 +648,6 @@ ggsave2(plot = MG1655_hmap, filename = "plots/MG1655_hmap.jpeg", width = 12, hei
 ![](plots/PB9_hmap.jpeg)
 :::
 
-Overall, for the TEM-1 containing strain, the peptide when combined with the ampicillin does seem to inhibit growth more than either drug alone as demonstrated by lower AUC at higher peptide concentration (when paired with amp.) This combined with the MG1655 control data which does not seem to respond to the peptide supports the claim that the peptide is in fact able to bind and inhibit TEM-1 in the PB9 test strain.
+Overall, for the TEM-1 containing strain, the peptide when combined with the ampicillin does seem to inhibit growth more than either drug alone as demonstrated by lower AUC at higher peptide concentration (when paired with amp.) This combined with the MG1655 control data which does not seem to respond to the peptide supports the claim that the peptide is in fact able to bind and inhibit TEM-1 in the PB9 test strain. Of course more testing on different strains with multiple replicates will need to be done, and statistical analyses performed before any conclusions can be drawn.
 
 THE END :)
